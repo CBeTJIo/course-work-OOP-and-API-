@@ -26,7 +26,7 @@ response = requests.put(url_yandex_folder, headers=dict_head)
 TOKEN = config["VK"]["TOKEN"]
 
 class SAVEPHOTOClient:
-    base_url = "https://api.vk.com/method"
+    base_url_VK = "https://api.vk.com/method"
 
     def __init__(self, token, owner_id):
         self.token = token
@@ -41,7 +41,7 @@ class SAVEPHOTOClient:
             "photo_sizes": 1,
             "v": 5.131
         }
-        response = requests.get(f"{self.base_url}/photos.get", params=params)
+        response = requests.get(f"{self.base_url_VK}/photos.get", params=params)
         return response.json()
 
 if __name__ == "__main__":
@@ -105,9 +105,6 @@ for items in tqdm(found_photos):
         name = items.get("file_name")
     list_of_names.append(name)
 
-    list_photos = {"file_name": name, "size": [max_height, max_width]}
-    answer.append(list_photos)
-
     with open(name, "wb") as f:
         f.write(response.content)
 
@@ -121,5 +118,11 @@ for items in tqdm(found_photos):
 
     with open(name, "rb") as f:
         response = requests.put(url_for_upload, files={'file': f})
+
+    response = requests.get(f"https://cloud-api.yandex.net/v1/disk/resources?public_key={name_fold}", params=params_image, headers=dict_head)
+    name_file = response.json().get('name')
+    size_file = response.json().get('size')
+    list_photos = {"file_name": name_file, "size": size_file}
+    answer.append(list_photos)
 
 pprint(answer)
