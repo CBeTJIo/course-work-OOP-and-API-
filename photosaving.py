@@ -21,8 +21,6 @@ base_url_yandex = "https://cloud-api.yandex.net"
 url_yandex_folder = f"{base_url_yandex}/v1/disk/resources?path={name_fold}"
 response = requests.put(url_yandex_folder, headers=dict_head)
 
-# Мой куратор - Филипп Воронов (Discord — fivoronov)
-
 TOKEN = config["VK"]["TOKEN"]
 
 class SAVEPHOTOClient:
