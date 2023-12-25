@@ -5,6 +5,8 @@ from urllib.parse import urlencode
 import time
 from tqdm import tqdm
 import configparser
+import os
+from datetime import datetime
 
 config = configparser.ConfigParser()
 config.read("settings.ini")
@@ -55,7 +57,8 @@ for items in storage_photo.get("response").get("items"):
     max_width = 0
     url_photo = ""
     first_name = items.get("likes", {}).get("count")
-    second_name = items.get("date")
+    second_name = f".date-{datetime.fromtimestamp(items.get("date")).date()}"
+    third_name = f".id-{items.get("id")}"
     for max_photo_resol in items.get('sizes'):
         if max_photo_resol.get("height") > max_height or max_photo_resol.get("width")> max_width:
             max_height = max_photo_resol.get("height")
@@ -64,6 +67,8 @@ for items in storage_photo.get("response").get("items"):
     name = f"{first_name}.jpg"
     if name in names_list:
         name = f"{first_name}{second_name}.jpg"
+        if name in names_list:
+            name = f"{first_name}{second_name}{third_name}.jpg"
     names_list.append(name)
     name_sorted.append(first_name)
     list_photos = {"file_name": name, "size": [max_height, max_width], "url": url_photo, "number": first_name, "number_second": second_name}
