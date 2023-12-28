@@ -1,12 +1,9 @@
-import json
 import requests
 from pprint import pprint
-from urllib.parse import urlencode
-import time
 from tqdm import tqdm
 import configparser
-import os
 from datetime import datetime
+
 
 class SavePhotoClient:
     base_url_VK = "https://api.vk.com/method"
@@ -28,7 +25,7 @@ class SavePhotoClient:
 
     def upload_photo_profile(self):
         params = {
-            "access_token":  self.token_vk,
+            "access_token": self.token_vk,
             "owner_id": self.owner_id,
             "album_id": "profile",
             "extended": 1,
@@ -74,18 +71,17 @@ class SavePhotoClient:
             photo_rating.append(photo.get("number"))
         photo_rating.sort()
         photo_rating = photo_rating[-count:]
-        check_count = 1
         sorted_list_photo = []
-        while count > check_count - 1:
-            double = 0
-            for serch_photo in list_photo:
-                if serch_photo.get("number") == photo_rating[-check_count]:
-                    if double > 0:
-                        continue
-                    else:
-                        sorted_list_photo.append(serch_photo)
-                        double += 1
+        check_count = 0
+        list_file_name = []
+        while count > check_count:
             check_count += 1
+            for serch_photo in list_photo:
+                if serch_photo.get("number") == photo_rating[-check_count] and serch_photo.get(
+                        "file_name") not in list_file_name:
+                    sorted_list_photo.append(serch_photo)
+                    list_file_name.append(serch_photo.get('file_name'))
+                    break
         return sorted_list_photo
 
     def load_photos(self):
@@ -113,6 +109,7 @@ class SavePhotoClient:
             list_photos = {"file_name": name_file, "size": size_file}
             answer.append(list_photos)
         pprint(answer)
+
 
 if __name__ == "__main__":
     SavePhotoClient().load_photos()
