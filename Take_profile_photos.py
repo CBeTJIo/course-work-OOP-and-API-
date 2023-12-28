@@ -8,31 +8,23 @@ import configparser
 import os
 from datetime import datetime
 
-config = configparser.ConfigParser()
-config.read("settings.ini")
-name_fold = config["Yandex"]["name_fold"]
-token_ya = config["Yandex"]["yan_oauth_token"]
-owner_id = config["VK"]["owner_id"]
-count = int(config["Yandex"]["count"])
-token_vk = config["VK"]["token_vk"]
-
-dict_head = {"Authorization": f"OAuth {token_ya}"}
-base_url_yandex = "https://cloud-api.yandex.net"
-url_yandex_folder = f"{base_url_yandex}/v1/disk/resources?path={name_fold}"
-response = requests.put(url_yandex_folder, headers=dict_head)
-
-class SAVEPHOTOClient:
+class SavePhotoClient:
     base_url_VK = "https://api.vk.com/method"
     base_url_yandex = "https://cloud-api.yandex.net"
+    config = configparser.ConfigParser()
+    config.read("settings.ini")
+    owner_id = config["VK"]["owner_id"]
+    token_vk = config["VK"]["token_vk"]
+    token_ya = config["Yandex"]["yan_oauth_token"]
+    name_fold = config["Yandex"]["name_fold"]
+    dict_head = {
+        "Authorization": f"OAuth {token_ya}"
+    }
 
-    def __init__(self, token_vk, owner_id, token_ya, count):
-        self.token_vk = token_vk
-        self.owner_id = owner_id
-        self.token_ya = token_ya
-        self.count = count
-        dict_head = {
-            "Authorization": f"OAuth {self.token_ya}"
-        }
+    def create_folder(self):
+        url_yandex_folder = f"{self.base_url_yandex}/v1/disk/resources?path={self.name_fold}"
+        response = requests.put(url_yandex_folder, headers=self.dict_head)
+        return self.name_fold
 
     def upload_photo_profile(self):
         params = {
@@ -73,35 +65,49 @@ class SAVEPHOTOClient:
 
     def count_sorted(self):
         photo_rating = []
+        count = int(self.config["Yandex"]["count"])
         list_photo = self.take_photos()
         qty_photos = len(list_photo)
-        if qty_photos < self.count:
-            self.count = qty_photos
+        if qty_photos < count:
+            count = qty_photos
         for photo in list_photo:
             photo_rating.append(photo.get("number"))
         photo_rating.sort()
-        photo_rating = photo_rating[:-self.count-1:-1]
-        return [serch_photo for serch_photo in list_photo if serch_photo.get("number") in photo_rating]
+        photo_rating = photo_rating[-count:]
+        check_count = 1
+        sorted_list_photo = []
+        while count > check_count - 1:
+            double = 0
+            for serch_photo in list_photo:
+                if serch_photo.get("number") == photo_rating[-check_count]:
+                    if double > 0:
+                        continue
+                    else:
+                        sorted_list_photo.append(serch_photo)
+                        double += 1
+            check_count += 1
+        return sorted_list_photo
 
     def load_photos(self):
         answer = []
         found_photos = self.count_sorted()
+        name_fold = self.create_folder()
         for items in tqdm(found_photos):
             response = requests.get(items.get("url"))
             name = items.get("file_name")
             with open(name, "wb") as f:
                 f.write(response.content)
-            url_yandex_request = f"{base_url_yandex}/v1/disk/resources/upload"
+            url_yandex_request = f"{self.base_url_yandex}/v1/disk/resources/upload"
             params_image = {
                 "path": f"{name_fold}/{name}"
             }
-            response = requests.get(url_yandex_request, params=params_image, headers=dict_head)
+            response = requests.get(url_yandex_request, params=params_image, headers=self.dict_head)
             url_for_upload = response.json().get('href')
             with open(name, "rb") as f:
                 response = requests.put(url_for_upload, files={'file': f})
 
-            response = requests.get(f"{base_url_yandex}/v1/disk/resources?public_key={name_fold}",
-                                    params=params_image, headers=dict_head)
+            response = requests.get(f"{self.base_url_yandex}/v1/disk/resources?public_key={name_fold}",
+                                    params=params_image, headers=self.dict_head)
             name_file = response.json().get('name')
             size_file = response.json().get('size')
             list_photos = {"file_name": name_file, "size": size_file}
@@ -109,5 +115,4 @@ class SAVEPHOTOClient:
         pprint(answer)
 
 if __name__ == "__main__":
-    vk_client = SAVEPHOTOClient(token_vk, owner_id, token_ya, count)
-    storage_photo = vk_client.load_photos()
+    SavePhotoClient().load_photos()
